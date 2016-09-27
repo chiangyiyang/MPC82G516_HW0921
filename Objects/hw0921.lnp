@@ -1,0 +1,4 @@
+".\Objects\STARTUP.obj",
+".\Objects\main.obj" 
+TO ".\Objects\hw0921" 
+PRINT(".\Listings\hw0921.m51") RAMSIZE(256) 
