@@ -1,4 +1,4 @@
-C51 COMPILER V9.56.0.0   MAIN                                                              09/28/2016 00:59:04 PAGE 1   
+C51 COMPILER V9.56.0.0   MAIN                                                              09/28/2016 10:26:49 PAGE 1   
 
 
 C51 COMPILER V9.56.0.0, COMPILATION OF MODULE MAIN
@@ -10,7 +10,7 @@ line level    source
 
    1          /********** 4_5B_Homework.C ****************************
    2          *動作：每按一次按鍵，令LED有六種變化
-   3          *硬體：SW1-3(P0LED)ON, 按KEY1 
+   3          *硬體：SW1-2,3(8*8 LDE Matrix, P0LED)ON, 按KEY1 
    4          ***********************************************/
    5          #include "MPC82.H"   //暫存器及組態定義
    6          
@@ -62,264 +62,225 @@ line level    source
   52   1               | ((greenMan[i][6] >> j) & 0x01) << 6
   53   1               | ((greenMan[i][7] >> j) & 0x01) << 7;
   54   1      }
-C51 COMPILER V9.56.0.0   MAIN                                                              09/28/2016 00:59:04 PAGE 2   
+C51 COMPILER V9.56.0.0   MAIN                                                              09/28/2016 10:26:49 PAGE 2   
 
   55          
-  56          void dotShow(){
-  57   1         uint8 t = 10;  
-  58   1         uint8 i, j, k;
-  59   1         
-  60   1         switch (dsState)
-  61   1         {
-  62   2            case 0:
-  63   2               //X = 7>0 , Y = 0
-  64   2               Scan = 0xFE;
-  65   2               Data = 0xFE;
-  66   2               do{
-  67   3                  Scan = RL8( Scan );
-  68   3                  Delay_ms( t  ); 
-  69   3               }while( Scan != 0x7F );          
-  70   2               break;
-  71   2            
-  72   2            case 1:
-  73   2               //X = 0, Y = 0>7
-  74   2               Scan = 0x7F;
-  75   2               Data = 0xFE;
-  76   2               do{
-  77   3                  Data = RL8( Data );
-  78   3                  Delay_ms( t  );
-  79   3               }while( Data != 0x7F );       
-  80   2               break;
-  81   2      
-  82   2            case 2:
-  83   2               //X = 0>7, Y = 7
-  84   2               Scan = 0x7F;
-  85   2               Data = 0x7F;
-  86   2               do{
-  87   3                  Scan = RR8( Scan );
-  88   3                  Delay_ms( t  ); 
-  89   3               }while( Scan != 0xFE );          
-  90   2               break;
-  91   2      
-  92   2            case 3:
-  93   2               // X = 7, Y = 7>0
-  94   2               Scan = 0xFE;
-  95   2               Data = 0x7F;
-  96   2               do{
-  97   3                  Data = RR8( Data );
-  98   3                  Delay_ms( t  ); 
-  99   3               }while( Data != 0xFE );             
- 100   2               break;
- 101   2      
- 102   2            case 4:
- 103   2               //X = 7>0, Y = 0>7
- 104   2               Scan = 0xFE;
- 105   2               Data = 0xFE;
- 106   2               do{
- 107   3                  Data = RL8( Data );
- 108   3                  Scan = RL8( Scan );
- 109   3                  Delay_ms( t  ); 
- 110   3               }while( Data != 0x7F );       
- 111   2               break;
- 112   2      
- 113   2            case 5:
- 114   2               //X = 0>7, Y = 7
- 115   2               Scan = 0x7F;
- 116   2               Data = 0x7F;
-C51 COMPILER V9.56.0.0   MAIN                                                              09/28/2016 00:59:04 PAGE 3   
+  56          //void dotXY( uint8 X, uint8 Y, uint8 t){
+  57          // Scan = ~(0x80>>X);
+  58          // Data = ~(0x01<<Y);
+  59          
+  60          // Delay_ms( t ); 
+  61          // 
+  62          // //Scan = Data = 0xFF;   
+  63          //}
+  64          
+  65          void dotLine( int8 X0, int8 Y0, int8 DX, int8 DY, int8 n, int8 t){
+  66   1         int8 i;
+  67   1         for(i=0; i<n; i++){
+  68   2            Scan = ~(0x80>>(X0 + DX*i));
+  69   2            Data = ~(0x01<<(Y0 + DY*i));
+  70   2            Delay_ms( t );       
+  71   2         }
+  72   1      }
+  73          
+  74          void showGreenMan( int8 mode ){
+  75   1         //Green Go :Top, Bottom, Right, Left = 0, 1, 2, 3
+  76   1         int8 i, j, k, t;
+  77   1         Scan = (mode & 1)? 0xFE: 0X7F;
+  78   1         for(t = 0 ; t < 4; t++){
+  79   2            for(j = 0 ; j < 8; j++){
+  80   3               for(k = 0 ; k < 10; k++){
+  81   4                  for(i = 0 ; i < 8; i++){
+  82   5                     switch (mode)
+  83   5                     {
+  84   6                        case 0://Top
+  85   6                           Data = ~greenMan[j][i];
+  86   6                           break;
+  87   6      
+  88   6                        case 1://Bottom
+  89   6                           Data = ~revers(greenMan[j][i]);
+  90   6                           break;
+  91   6      
+  92   6                        case 2://Right
+  93   6                           Data = ~revers(getRotateImage(j, i));
+  94   6                           break;
+  95   6      
+  96   6                        case 3://Left
+  97   6                           Data = ~getRotateImage(j, i);
+  98   6                           break;
+  99   6                     }
+ 100   5                     Delay_ms(1);
+ 101   5                     Data =  0xFF;
+ 102   5                     if(mode & 1) { Scan = RL8(Scan); } else { Scan = RR8(Scan); }
+ 103   5                  }
+ 104   4               }
+ 105   3            }
+ 106   2         }
+ 107   1      }
+ 108          
+ 109          
+ 110          
+ 111          void dotShow(){
+ 112   1         uint8 t = 10;  
+ 113   1         int8 i, j;
+ 114   1         
+ 115   1         switch (dsState)
+ 116   1         {
+C51 COMPILER V9.56.0.0   MAIN                                                              09/28/2016 10:26:49 PAGE 3   
 
- 117   2               do{
- 118   3                  Scan = RR8( Scan );
- 119   3                  Delay_ms( t  ); 
- 120   3               }while( Scan != 0xFE );          
- 121   2               break;
- 122   2      
- 123   2            case 6:
- 124   2               //X = 7>0, Y = 7>0
- 125   2               Scan = 0xFE;
- 126   2               Data = 0x7F;
- 127   2               do{
- 128   3                  Data = RR8( Data );
- 129   3                  Scan = RL8( Scan );
- 130   3                  Delay_ms( t  ); 
- 131   3               }while( Data != 0xFE );       
- 132   2               break;
- 133   2      
- 134   2            case 7:
- 135   2               //X = 0>7, Y = 0
- 136   2               Scan = 0x7F;
- 137   2               Data = 0xFE;
- 138   2               do{
- 139   3                  Scan = RR8( Scan );
- 140   3                  Delay_ms( t  );
- 141   3               }while( Scan != 0xFE );       
- 142   2               break;
- 143   2               
- 144   2            case 8:
- 145   2               //Green Go :Buttom
- 146   2               Scan = 0xFE;
- 147   2      
- 148   2               for(t = 0 ; t < 4; t++){
- 149   3                  for(j = 0 ; j < 8; j++){
- 150   4                     for(k = 0 ; k < 10; k++){
- 151   5                        for(i = 0 ; i < 8; i++){
- 152   6                           Data = ~revers(greenMan[j][i]);
- 153   6                           Delay_ms(1);
- 154   6                           Data =  0xFF;
- 155   6                           Scan=RL8(Scan); //換掃瞄下一行
- 156   6                        }
- 157   5                     }
- 158   4                  }
- 159   3               }
- 160   2               break;
- 161   2               
- 162   2            case 9:
- 163   2               //Green Go :Right
- 164   2               Scan = 0x7F;
- 165   2               for(t = 0 ; t < 4; t++){
- 166   3                  for(j = 0 ; j < 8; j++){
- 167   4                     for(k = 0 ; k < 10; k++){
- 168   5                        for(i = 0 ; i < 8; i++){
- 169   6                           Data = ~revers(getRotateImage(j, i));
- 170   6                           Delay_ms(1);
- 171   6                           Data =  0xFF;
- 172   6                           Scan=RR8(Scan); //換掃瞄下一行
- 173   6                        }
- 174   5                     }
- 175   4                  }
- 176   3               }
- 177   2               break;
- 178   2            
-C51 COMPILER V9.56.0.0   MAIN                                                              09/28/2016 00:59:04 PAGE 4   
+ 117   2            case 0:
+ 118   2               dotLine(7, 0, -1, 0, 8, t);
+ 119   2               break;
+ 120   2            
+ 121   2            case 1:
+ 122   2               dotLine(0, 0, 0, 1, 8, t);
+ 123   2               break;
+ 124   2            
+ 125   2            case 2:
+ 126   2               dotLine(0, 7, 1, 0, 8, t);
+ 127   2               break;
+ 128   2            
+ 129   2            case 3:
+ 130   2               dotLine(7, 7, 0, -1, 8, t);
+ 131   2               break;
+ 132   2            
+ 133   2            case 4:
+ 134   2               dotLine(7, 0, -1, 1, 8, t);
+ 135   2               break;
+ 136   2            
+ 137   2            case 5:
+ 138   2               dotLine(0, 7, 1, 0, 8, t);
+ 139   2               break;
+ 140   2            
+ 141   2            case 6:
+ 142   2               dotLine(7, 7, -1, -1, 8, t);
+ 143   2               break;
+ 144   2            
+ 145   2            case 7:
+ 146   2               dotLine(0, 0, 1, 0, 8, t);
+ 147   2               break;
+ 148   2               
+ 149   2            case 8:
+ 150   2               showGreenMan(1); //Bottom
+ 151   2               break;
+ 152   2               
+ 153   2            case 9:
+ 154   2               showGreenMan(2); //Right
+ 155   2               break;
+ 156   2            
+ 157   2            case 10:
+ 158   2               showGreenMan(0); //Top
+ 159   2               break;
+ 160   2      
+ 161   2            case 11:
+ 162   2               showGreenMan(3); //Left    
+ 163   2               break;
+ 164   2      
+ 165   2            case 12:
+ 166   2               i = 0;
+ 167   2               j = 1;
+ 168   2               do{
+ 169   3                  dotLine(7-i, 0+i, -1, 0, 8-i-i, t);
+ 170   3                  dotLine(0+i, 0+i, 0, 1, 8-i-i, t);
+ 171   3                  dotLine(0+i, 7-i, 1, 0, 8-i-i, t);
+ 172   3                  dotLine(7-i, 7-i, 0, -1, 8-i-i, t);
+ 173   3                  i += j;
+ 174   3                  if( i>=4) j = -1;
+ 175   3               }while( i > -1);
+ 176   2               break;
+ 177   2         }
+ 178   1         
+C51 COMPILER V9.56.0.0   MAIN                                                              09/28/2016 10:26:49 PAGE 4   
 
- 179   2            case 10:
- 180   2               //Green Go :Top
- 181   2               Scan = 0x7F;
- 182   2      
- 183   2               for(t = 0 ; t < 4; t++){
- 184   3                  for(j = 0 ; j < 8; j++){
- 185   4                     for(k = 0 ; k < 10; k++){
- 186   5                        for(i = 0 ; i < 8; i++){
- 187   6                           Data = ~greenMan[j][i];
- 188   6                           Delay_ms(1);
- 189   6                           Data =  0xFF;
- 190   6                           Scan=RR8(Scan); //換掃瞄下一行
- 191   6                        }
- 192   5                     }
- 193   4                  }
- 194   3               }        
- 195   2               break;
- 196   2      
- 197   2            case 11:
- 198   2               //Green Go :Left
- 199   2               Scan = 0xFE;
- 200   2               for(t = 0 ; t < 4; t++){
- 201   3                  for(j = 0 ; j < 8; j++){
- 202   4                     for(k = 0 ; k < 10; k++){
- 203   5                        for(i = 0 ; i < 8; i++){
- 204   6                           Data = ~getRotateImage(j, i);
- 205   6                           Delay_ms(1);
- 206   6                           Data =  0xFF;
- 207   6                           Scan=RL8(Scan); //換掃瞄下一行
- 208   6                        }
- 209   5                     }
- 210   4                  }
- 211   3               }
- 212   2               break;
- 213   2         }
- 214   1         
- 215   1         dsState = dsState == 11 ?  0 : dsState + 1;
- 216   1      }
- 217          
- 218          
- 219          void play(){
- 220   1         
- 221   1         uint16 dly;
- 222   1         uint32 count;
- 223   1         
- 224   1         count = 0;
- 225   1         while(1){
- 226   2            
- 227   2            if( littleBee[ inxlittleBee ] > 0){
- 228   3            
- 229   3                           dly =  Pitch_TAB[ littleBee[ inxlittleBee ] -1 ];
- 230   3                           count += dly;
- 231   3                           while( dly-- ); //改變延時
- 232   3                           SPEAK = !SPEAK;   //SPEAK反相,令喇叭發出聲音
- 233   3                           if(count > 300000) break;
- 234   3            }else{
- 235   3                           dly =  Pitch_TAB[ 0 ];
- 236   3                           count += dly;
- 237   3                           while( dly-- ); //改變延時
- 238   3                           NOP();
- 239   3                           if(count > 300000) break;
- 240   3            }
-C51 COMPILER V9.56.0.0   MAIN                                                              09/28/2016 00:59:04 PAGE 5   
+ 179   1         dsState = dsState == 12 ?  0 : dsState + 1;
+ 180   1      }
+ 181          
+ 182          
+ 183          void play(){
+ 184   1         
+ 185   1         uint16 dly;
+ 186   1         uint32 count;
+ 187   1         
+ 188   1         count = 0;
+ 189   1         while(1){
+ 190   2            
+ 191   2            if( littleBee[ inxlittleBee ] > 0){
+ 192   3               dly =  Pitch_TAB[ littleBee[ inxlittleBee ] -1 ];
+ 193   3               count += dly;
+ 194   3               while( dly-- ); //改變延時
+ 195   3               SPEAK = !SPEAK;   //SPEAK反相,令喇叭發出聲音
+ 196   3               if(count > 300000) break;
+ 197   3            }else{
+ 198   3               dly =  Pitch_TAB[ 0 ];
+ 199   3               count += dly;
+ 200   3               while( dly-- ); //改變延時
+ 201   3               NOP();
+ 202   3               if(count > 300000) break;
+ 203   3            }
+ 204   2         }
+ 205   1         inxlittleBee = inxlittleBee >= 63 ? 0 : inxlittleBee + 1;
+ 206   1      }
+ 207          
+ 208          
+ 209          main() 
+ 210          {
+ 211   1        P0M0=0; P0M1=0xFF; //設定P0為推挽式輸出(M0-1=01)
+ 212   1        while(1)       //重覆執行 
+ 213   1         {          //若flag=0，直接跳到此處
+ 214   2           if(KEY1==0)      //若有按鍵，flag反相
+ 215   2           {
+ 216   3              Delay_ms(1); //延時，防止機械彈跳    
+ 217   3              flag++; if(flag>5) flag=0;   
+ 218   3             while(KEY1==0); //若未放開鍵，空轉 
+ 219   3           }
+ 220   2      
+ 221   2         switch (flag)
+ 222   2            {
+ 223   3                  case 0:
+ 224   3                     LED--;
+ 225   3                     break;
+ 226   3                  
+ 227   3                  case 1:
+ 228   3                     LED++;
+ 229   3                     break;      
+ 230   3                  
+ 231   3                  case 2:
+ 232   3                     LED=0;
+ 233   3                     break;
+ 234   3                  
+ 235   3                  case 3:
+ 236   3                     LED=0xFF;
+ 237   3                     break;
+ 238   3                  
+ 239   3                  case 4:
+ 240   3                     dotShow();
+C51 COMPILER V9.56.0.0   MAIN                                                              09/28/2016 10:26:49 PAGE 5   
 
- 241   2         }
- 242   1         inxlittleBee = inxlittleBee >= 63 ? 0 : inxlittleBee + 1;
- 243   1      }
- 244          
- 245          
- 246          main() 
- 247          {
- 248   1        P0M0=0; P0M1=0xFF; //設定P0為推挽式輸出(M0-1=01)
- 249   1        while(1)       //重覆執行 
- 250   1         {          //若flag=0，直接跳到此處
- 251   2           if(KEY1==0)      //若有按鍵，flag反相
- 252   2           {
- 253   3              Delay_ms(1); //延時，防止機械彈跳    
- 254   3              flag++; if(flag>5) flag=0;   
- 255   3             while(KEY1==0); //若未放開鍵，空轉 
- 256   3           }
- 257   2      
- 258   2         switch (flag)
- 259   2            {
- 260   3                  case 0:
- 261   3                     LED--;
- 262   3                     break;
- 263   3                  
- 264   3                  case 1:
- 265   3                     LED++;
- 266   3                     break;      
- 267   3                  
- 268   3                  case 2:
- 269   3                     LED=0;
- 270   3                     break;
- 271   3                  
- 272   3                  case 3:
- 273   3                     LED=0xFF;
- 274   3                     break;
- 275   3                  
- 276   3                  case 4:
- 277   3                     dotShow();
- 278   3                     break;
- 279   3                  
- 280   3                  case 5:
- 281   3                     Scan = 0xFF;
- 282   3                     play();
- 283   3                     break;
- 284   3                  
- 285   3                  default:
- 286   3                     break;
- 287   3            }
- 288   2               Delay_ms(100); //延時    
- 289   2               
- 290   2         }
- 291   1      }
+ 241   3                     break;
+ 242   3                  
+ 243   3                  case 5:
+ 244   3                     Scan = 0xFF;
+ 245   3                     play();
+ 246   3                     break;
+ 247   3                  
+ 248   3                  default:
+ 249   3                     break;
+ 250   3            }
+ 251   2               Delay_ms(100); //延時    
+ 252   2               
+ 253   2         }
+ 254   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1662    ----
+   CODE SIZE        =   1661    ----
    CONSTANT SIZE    =     80    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =     84    ----
+   DATA SIZE        =     95    ----
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.
-
-C51 COMPILER V9.56.0.0   MAIN                                                              09/28/2016 00:59:04 PAGE 6   
 
 
 C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

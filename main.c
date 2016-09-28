@@ -1,6 +1,6 @@
 /********** 4_5B_Homework.C ****************************
 *動作：每按一次按鍵，令LED有六種變化
-*硬體：SW1-3(P0LED)ON, 按KEY1 
+*硬體：SW1-2,3(8*8 LDE Matrix, P0LED)ON, 按KEY1 
 ***********************************************/
 #include "MPC82.H"   //暫存器及組態定義
 
@@ -53,166 +53,130 @@ uint8 getRotateImage(uint8 i, uint8 j){
 			| ((greenMan[i][7] >> j) & 0x01) << 7;
 }
 
+//void dotXY( uint8 X, uint8 Y, uint8 t){
+//	Scan = ~(0x80>>X);
+//	Data = ~(0x01<<Y);
+
+//	Delay_ms( t ); 
+//	
+//	//Scan = Data = 0xFF;	
+//}
+
+void dotLine( int8 X0, int8 Y0, int8 DX, int8 DY, int8 n, int8 t){
+	int8 i;
+	for(i=0; i<n; i++){
+		Scan = ~(0x80>>(X0 + DX*i));
+		Data = ~(0x01<<(Y0 + DY*i));
+		Delay_ms( t ); 		
+	}
+}
+
+void showGreenMan( int8 mode ){
+	//Green Go :Top, Bottom, Right, Left = 0, 1, 2, 3
+	int8 i, j, k, t;
+	Scan = (mode & 1)? 0xFE: 0X7F;
+	for(t = 0 ; t < 4; t++){
+		for(j = 0 ; j < 8; j++){
+			for(k = 0 ; k < 10; k++){
+				for(i = 0 ; i < 8; i++){
+					switch (mode)
+					{
+						case 0://Top
+							Data = ~greenMan[j][i];
+							break;
+
+						case 1://Bottom
+							Data = ~revers(greenMan[j][i]);
+							break;
+
+						case 2://Right
+							Data = ~revers(getRotateImage(j, i));
+							break;
+
+						case 3://Left
+							Data = ~getRotateImage(j, i);
+							break;
+					}
+					Delay_ms(1);
+					Data =  0xFF;
+					if(mode & 1) { Scan = RL8(Scan); } else { Scan = RR8(Scan); }
+				}
+			}
+		}
+	}
+}
+
+
+
 void dotShow(){
 	uint8	t = 10;	
-	uint8 i, j, k;
+	int8 i, j;
 	
 	switch (dsState)
    {
-   	case 0:
-			//X = 7>0 , Y = 0
-			Scan = 0xFE;
-			Data = 0xFE;
-			do{
-				Scan = RL8( Scan );
-				Delay_ms( t  ); 
-			}while( Scan != 0x7F );				
-   		break;
+		case 0:
+			dotLine(7, 0, -1, 0, 8, t);
+			break;
 		
-   	case 1:
-			//X = 0, Y = 0>7
-			Scan = 0x7F;
-			Data = 0xFE;
-			do{
-				Data = RL8( Data );
-				Delay_ms( t  );
-			}while( Data != 0x7F );			
-   		break;
-
-   	case 2:
-			//X = 0>7, Y = 7
-			Scan = 0x7F;
-			Data = 0x7F;
-			do{
-				Scan = RR8( Scan );
-				Delay_ms( t  ); 
-			}while( Scan != 0xFE );				
-   		break;
-
-   	case 3:
-			// X = 7, Y = 7>0
-			Scan = 0xFE;
-			Data = 0x7F;
-			do{
-				Data = RR8( Data );
-				Delay_ms( t  ); 
-			}while( Data != 0xFE );					
-   		break;
-
-   	case 4:
-			//X = 7>0, Y = 0>7
-			Scan = 0xFE;
-			Data = 0xFE;
-			do{
-				Data = RL8( Data );
-				Scan = RL8( Scan );
-				Delay_ms( t  ); 
-			}while( Data != 0x7F );			
-   		break;
-
-   	case 5:
-			//X = 0>7, Y = 7
-			Scan = 0x7F;
-			Data = 0x7F;
-			do{
-				Scan = RR8( Scan );
-				Delay_ms( t  ); 
-			}while( Scan != 0xFE );				
-   		break;
-
-   	case 6:
-			//X = 7>0, Y = 7>0
-			Scan = 0xFE;
-			Data = 0x7F;
-			do{
-				Data = RR8( Data );
-				Scan = RL8( Scan );
-				Delay_ms( t  ); 
-			}while( Data != 0xFE );			
-   		break;
-
-   	case 7:
-			//X = 0>7, Y = 0
-			Scan = 0x7F;
-			Data = 0xFE;
-			do{
-				Scan = RR8( Scan );
-				Delay_ms( t  );
-			}while( Scan != 0xFE );			
-   		break;
+		case 1:
+			dotLine(0, 0, 0, 1, 8, t);
+			break;
+		
+		case 2:
+			dotLine(0, 7, 1, 0, 8, t);
+			break;
+		
+		case 3:
+			dotLine(7, 7, 0, -1, 8, t);
+			break;
+		
+		case 4:
+			dotLine(7, 0, -1, 1, 8, t);
+			break;
+		
+		case 5:
+			dotLine(0, 7, 1, 0, 8, t);
+			break;
+		
+		case 6:
+			dotLine(7, 7, -1, -1, 8, t);
+			break;
+		
+		case 7:
+			dotLine(0, 0, 1, 0, 8, t);
+			break;
 			
    	case 8:
-			//Green Go :Buttom
-			Scan = 0xFE;
-
-			for(t = 0 ; t < 4; t++){
-				for(j = 0 ; j < 8; j++){
-					for(k = 0 ; k < 10; k++){
-						for(i = 0 ; i < 8; i++){
-							Data = ~revers(greenMan[j][i]);
-							Delay_ms(1);
-							Data =  0xFF;
-							Scan=RL8(Scan); //換掃瞄下一行
-						}
-					}
-				}
-			}
+			showGreenMan(1); //Bottom
    		break;
 			
    	case 9:
-			//Green Go :Right
-			Scan = 0x7F;
-			for(t = 0 ; t < 4; t++){
-				for(j = 0 ; j < 8; j++){
-					for(k = 0 ; k < 10; k++){
-						for(i = 0 ; i < 8; i++){
-							Data = ~revers(getRotateImage(j, i));
-							Delay_ms(1);
-							Data =  0xFF;
-							Scan=RR8(Scan); //換掃瞄下一行
-						}
-					}
-				}
-			}
+			showGreenMan(2); //Right
    		break;
 		
    	case 10:
-			//Green Go :Top
-			Scan = 0x7F;
-
-			for(t = 0 ; t < 4; t++){
-				for(j = 0 ; j < 8; j++){
-					for(k = 0 ; k < 10; k++){
-						for(i = 0 ; i < 8; i++){
-							Data = ~greenMan[j][i];
-							Delay_ms(1);
-							Data =  0xFF;
-							Scan=RR8(Scan); //換掃瞄下一行
-						}
-					}
-				}
-			}			
+			showGreenMan(0); //Top
    		break;
 
    	case 11:
-			//Green Go :Left
-			Scan = 0xFE;
-			for(t = 0 ; t < 4; t++){
-				for(j = 0 ; j < 8; j++){
-					for(k = 0 ; k < 10; k++){
-						for(i = 0 ; i < 8; i++){
-							Data = ~getRotateImage(j, i);
-							Delay_ms(1);
-							Data =  0xFF;
-							Scan=RL8(Scan); //換掃瞄下一行
-						}
-					}
-				}
-			}
+			showGreenMan(3); //Left		
    		break;
+
+		case 12:
+			i = 0;
+			j = 1;
+			do{
+				dotLine(7-i, 0+i, -1, 0, 8-i-i, t);
+				dotLine(0+i, 0+i, 0, 1, 8-i-i, t);
+				dotLine(0+i, 7-i, 1, 0, 8-i-i, t);
+				dotLine(7-i, 7-i, 0, -1, 8-i-i, t);
+				i += j;
+				if( i>=4) j = -1;
+			}while( i > -1);
+			break;
    }
 	
-	dsState = dsState == 11 ?  0 : dsState + 1;
+	dsState = dsState == 12 ?  0 : dsState + 1;
 }
 
 
@@ -225,18 +189,17 @@ void play(){
 	while(1){
 		
 		if( littleBee[ inxlittleBee ] > 0){
-		
-							dly =  Pitch_TAB[ littleBee[ inxlittleBee ] -1 ];
-							count += dly;
-							while( dly-- ); //改變延時
-							SPEAK = !SPEAK;   //SPEAK反相,令喇叭發出聲音
-							if(count > 300000) break;
+			dly =  Pitch_TAB[ littleBee[ inxlittleBee ] -1 ];
+			count += dly;
+			while( dly-- ); //改變延時
+			SPEAK = !SPEAK;   //SPEAK反相,令喇叭發出聲音
+			if(count > 300000) break;
 		}else{
-							dly =  Pitch_TAB[ 0 ];
-							count += dly;
-							while( dly-- ); //改變延時
-							NOP();
-							if(count > 300000) break;
+			dly =  Pitch_TAB[ 0 ];
+			count += dly;
+			while( dly-- ); //改變延時
+			NOP();
+			if(count > 300000) break;
 		}
 	}
 	inxlittleBee = inxlittleBee >= 63 ? 0 : inxlittleBee + 1;
